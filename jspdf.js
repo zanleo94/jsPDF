@@ -968,17 +968,21 @@ var jsPDF = (function(global) {
 			if (!('autoencode' in flags))
 				flags.autoencode = true;
 
-			if (typeof text === 'string') {
-				text = pdfEscape(text, flags);
-			} else if (text instanceof Array) {
+      if (typeof text === 'object' && text[0].data){ // se è un immagine
+        var value = text[0];
+        this.addImage(value.data, 'JPEG', x, y, value.w, value.h);
+        text = "";
+      } else if (text instanceof Array) {  /* Array */
 				// we don't want to destroy  original text array, so cloning it
 				var sa = text.concat(), da = [], len = sa.length;
 				// we do array.join('text that must not be PDFescaped")
 				// thus, pdfEscape each component separately
-				while (len--) {
-					da.push(pdfEscape(sa.shift(), flags));
+        while(len--) {
+          da.push(pdfEscape( sa.shift(), flags));
 				}
 				text = da.join(") Tj\nT* (");
+      } else if(typeof text === 'string'){
+        text = pdfEscape(text, flags);
 			} else {
 				throw new Error('Type of text must be string or Array. "' + text + '" is not recognized.');
 			}

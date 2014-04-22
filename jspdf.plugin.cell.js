@@ -177,7 +177,7 @@
      * @param {Object} [config.fontSize] Integer fontSize to use (optional)
      */
 
-    jsPDFAPI.table = function (x,y, data, headers, config) {
+    jsPDFAPI.table = function (x,y, data, headers, config, images) {
         if (!data) {
             throw 'No data for PDF table';
         }
@@ -290,7 +290,17 @@
             // Construct the header row
             for (i = 0, ln = headerNames.length; i < ln; i += 1) {
                 header = headerNames[i];
-                tableHeaderConfigs.push([x, y, columnWidths[header], lineHeight, String(headerPrompts.length ? headerPrompts[i] : header)]);
+                var value, element, index;
+                if(headerPrompts[i].indexOf('<img')!=-1){
+                  var div = document.createElement('div');
+                  div.innerHTML = headerPrompts[i];
+                  element = div.firstChild;
+                  index = element.getAttribute("src");
+                  value = [{data:images[index].data, url:images[index].url, h:images[index].height, w:images[index].with}];
+                }else if(headerPrompts.length){
+                  value = String(headerPrompts.length?headerPrompts[i]:header);
+                }
+                tableHeaderConfigs.push([x, y, columnWidths[header], lineHeight, value]);
             }
 
             // Store the table header config
@@ -308,7 +318,17 @@
 
             for (j = 0, jln = headerNames.length; j < jln; j += 1) {
                 header = headerNames[j];
-                this.cell(x, y, columnWidths[header], lineHeight, model[header], i + 2, header.align);
+                var value, element, index;
+                if(model[header].indexOf('<img')!=-1){
+                  var div = document.createElement('div');
+                  div.innerHTML = model[header];
+                  element = div.firstChild;
+                  index = element.getAttribute("src");
+                  value = [{data:images[index].data, url:images[index].url, h:images[index].height, w:images[index].with}];
+                }else{
+                  value = model[header];
+                }
+                this.cell(x, y, columnWidths[header], lineHeight, value, i + 2, header.align);
             }
         }
         this.lastCellPos = lastCellPos;
@@ -326,8 +346,16 @@
         var header, lineHeight = 0;
         for (var j = 0; j < headerNames.length; j++) {
             header = headerNames[j];
-            model[header] = this.splitTextToSize(String(model[header]), columnWidths[header] - padding);
-            var h = this.internal.getLineHeight() * model[header].length + padding;
+            var h;
+            if(model[(model[header] ? header : j)].indexOf('<img')!=-1){
+              var div = document.createElement('div');
+              div.innerHTML = model[(model[header] ? header : j)];
+              var element = div.firstChild;
+              h = parseInt(element.style["height"].replace("px", "")) + padding + 20;
+            }else{
+              model[(model[header] ? header : j)] = this.splitTextToSize(String(model[(model[header] ? header : j)]), columnWidths[header] - padding);
+              h = this.internal.getLineHeight() * model[(model[header] ? header : j)].length + padding;
+            }
             if (h > lineHeight)
                 lineHeight = h;
         }
